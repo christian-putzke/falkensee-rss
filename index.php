@@ -2,52 +2,37 @@
 
 	date_default_timezone_set('UTC');
 
-	// example of how to use basic selector to retrieve HTML contents
-	include 'simple_html_dom.php';
+	require "vendor/autoload.php";
+	use PHPHtmlParser\Dom;
 	 
-	// get DOM from URL or file
-	$url	= "http://www.falkensee.de";
-	$html	= file_get_html($url . '/news/');
-	$feed	= array();
+	$url = 'https://www.falkensee.de';
 
-	foreach($html->find('div#content') as $content)
+	$dom = new Dom;
+	$dom->loadFromUrl($url);
+
+	$content = $dom->find('#content')[0];
+
+	$newsIndex = 0;
+	$feed;
+	
+	foreach($content->find('p.vorschau') as $news)
 	{
-		$dateIndex = 0;
-	    foreach($content->find('h5') as $date)
-	    {
-		 	$feed[$dateIndex]["date"] = strtotime($date->innertext);
-	        $dateIndex ++;
-	    }
+		$newsUrl = $url . $news->find('a')->href;
+		$newsUrlParts = explode('/', $newsUrl);
 
-	    $ulIndex = 0;
-	    foreach($content->find('ul') as $ul)
-		{
-			$aIndex = 0;
-			foreach ($ul->find('a') as $a)
-			{
-				$parts = explode('/', $a->href);
+		$newsDom = new Dom;
+		$newsDom->loadFromUrl($newsUrl);
 
-				$feed[$ulIndex]["links"][$aIndex]["id"]				= $parts[3];
-				$feed[$ulIndex]["links"][$aIndex]["link"]			= $url . $a->href;
-				$feed[$ulIndex]["links"][$aIndex]["title"]			= $a->innertext;
-				$feed[$ulIndex]["links"][$aIndex]["description"]	= $a->innertext;
+		$newsContent = $newsDom->find('#content');
+		$newsDate = str_replace('Falkensee, den ', null, $newsContent->find('.news-date-publicized')->innerHtml);
 
-				//$descriptionHtml = file_get_html($feed[$ulIndex]["links"][$aIndex]["link"]);
-				//foreach($descriptionHtml->find('div#content') as $descriptionContent)
-				//{
-				//	foreach ($descriptionContent->find('div') as $descriptionContentDiv)
-				//	{
-				//		if($descriptionContentDiv->style == 'text-align: left;' || $descriptionContentDiv->id == 'newsImage')
-				//		{
-				//			$feed[$ulIndex]["links"][$aIndex]["description"] .= $descriptionContent->innertext;
-				//		}
-				//	}
-				//}
+		$feed[$newsIndex]['id'] = $newsUrlParts[5];
+		$feed[$newsIndex]['link'] = $newsUrl;
+		$feed[$newsIndex]['title'] = $newsContent->find('h1')->innerHtml;
+		$feed[$newsIndex]['description'] = $newsContent->find('.newscontent')->innerHtml;
+		$feed[$newsIndex]['date'] = strtotime($newsDate);
 
-				$aIndex ++;
-			}
-			$ulIndex ++;
-		}
+		$newsIndex ++;
 	}
 
 	$xml = new XMLWriter();
@@ -61,7 +46,7 @@
 			$xml->writeAttribute('xmlns:atom', 'http://www.w3.org/2005/Atom');
 
 			$xml->writeElement('title', "Stadt Falkensee News");
-			$xml->writeElement('link', "http://falkensee.graviox.de");
+			$xml->writeElement('link', "https://falkensee.graviox.de");
 			$xml->writeElement('description', "Der Stadt Falkensee RSS News Feed");
 			$xml->writeElement('language', "de-DE");
 			$xml->writeElement('generator', "www.christian-putzke.de");
@@ -71,20 +56,17 @@
 
 			$xml->startElement("channel");
 
-				foreach ($feed as $feedDate)
+				foreach ($feed as $feedItem)
 				{
-					foreach ($feedDate["links"] as $feedItem)
-					{
-						$xml->startElement("item");
+					$xml->startElement("item");
 
-							$xml->writeElement('title', $feedItem["title"]);
-							$xml->writeElement('link', $feedItem["link"]);
-							$xml->writeElement('description', $feedItem["description"]);
-							$xml->writeElement('guid', $feedItem["id"]);
-							$xml->writeElement('pubDate', date("D, d M Y H:i:s e", $feedDate["date"]));
+						$xml->writeElement('title', $feedItem["title"]);
+						$xml->writeElement('link', $feedItem["link"]);
+						$xml->writeElement('description', $feedItem["description"]);
+						$xml->writeElement('guid', $feedItem["id"]);
+						$xml->writeElement('pubDate', date("D, d M Y H:i:s e", $feedItem["date"]));
 
-						$xml->endElement();
-					}
+					$xml->endElement();
 				}
 
 			$xml->endElement();
