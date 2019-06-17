@@ -55,45 +55,35 @@
 	$xml->openURI('php://output');
 	$xml->setIndent(4);
 
-	$xml->startDocument('1.0'); 
-		$xml->writeAttribute('encoding', 'UTF-8');
+	$xml->startDocument('1.0', 'UTF-8'); 
 
 		$xml->startElement('rss');
-			$xml->writeAttribute('version', '2.0');
 			$xml->writeAttribute('xmlns:content', 'http://purl.org/rss/1.0/modules/content/');
-			$xml->writeAttribute('xmlns:wfw', 'http://wellformedweb.org/CommentAPI/');
-			$xml->writeAttribute('xmlns:dc', 'http://purl.org/dc/elements/1.1/');
-			$xml->writeAttribute('xmlns:atom', 'http://www.w3.org/2005/Atom');
-			$xml->writeAttribute('xmlns:sy', 'http://purl.org/rss/1.0/modules/syndication/');
 			$xml->writeAttribute('xmlns:slash', 'http://purl.org/rss/1.0/modules/slash/');
+			$xml->writeAttribute('xmlns:atom', 'http://www.w3.org/2005/Atom');
+			$xml->writeAttribute('version', '2.0');
 
 			$xml->startElement("channel");
-
 				$xml->writeElement('title', "Stadt Falkensee News (inoffiziell)");
+				$xml->writeElement('description', "Der inoffizielle Stadt Falkensee RSS News Feed");
 				$xml->writeElement('link', "https://www.falkensee.de");
 				$xml->writeElement('atom:link', "https://falkensee.graviox.de");
-					$xml->writeAttribute('rel', 'self');
-					$xml->writeAttribute('type', 'application/rss+xml');
-				$xml->writeElement('description', "Der inoffizielle Stadt Falkensee RSS News Feed");
-				$xml->writeElement('language', "de-DE");
-				$xml->writeElement('generator', "https://www.christian-putzke.de");
 				$xml->writeElement('lastBuildDate', date("D, d M Y H:i:s e", time()));
+				$xml->writeElement('generator', "https://www.christian-putzke.de");
+				$xml->writeElement('language', "de");
 
+				foreach ($feed as $feedItem)
+				{
+					$xml->startElement("item");
+						$xml->writeElement('title', $feedItem["title"]);
+						$xml->writeElement('link', $feedItem["link"]);
+						$xml->writeElement('description', $feedItem["description"]);
+						$xml->writeElement('pubDate', date("D, d M Y H:i:s e", $feedItem["date"]));
+						$xml->writeElement('guid', $feedItem["id"]);
+						$xml->writeElement('content:encoded', '<![CDATA[' . $feedItem["content"] . ']]');
+					$xml->endElement();
+				}
 			$xml->endElement();
-
-			foreach ($feed as $feedItem)
-			{
-				$xml->startElement("item");
-
-					$xml->writeElement('title', $feedItem["title"]);
-					$xml->writeElement('link', $feedItem["link"]);
-					$xml->writeElement('description', '<![CDATA[' . $feedItem["description"] . ']]');
-					$xml->writeElement('content:encoded', '<![CDATA[' . $feedItem["content"] . ']]');
-					$xml->writeElement('guid', $feedItem["id"]);
-					$xml->writeElement('pubDate', date("D, d M Y H:i:s e", $feedItem["date"]));
-
-				$xml->endElement();
-			}
 
 		$xml->endElement();
 
