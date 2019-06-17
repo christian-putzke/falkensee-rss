@@ -80,7 +80,9 @@
 						$xml->writeElement('description', $feedItem["description"]);
 						$xml->writeElement('pubDate', date("D, d M Y H:i:s e", $feedItem["date"]));
 						$xml->writeElement('guid', $feedItem["id"]);
-						$xml->writeElement('content:encoded', '<![CDATA[' . $feedItem["content"] . ']]');
+						$xml->startElement("content:encoded");
+							$xml->writeCData($feedItem["content"]);
+						$xml->endElement();
 					$xml->endElement();
 				}
 			$xml->endElement();
