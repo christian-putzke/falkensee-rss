@@ -36,8 +36,18 @@
 		$newsDate = strtotime(str_replace('Falkensee, den ', null, $newsContentContainer->find('.news-date-publicized')->innerHtml));
 
 		// remove annoying elements  
-		$newsContent->find('#magifier_overlay')->delete();
-		$newsContent->find('#magnifier')->delete();
+		$nodesToDelete = array(
+			$newsContent->find('#magifier_overlay'),
+			$newsContent->find('#magnifier')
+		);
+
+		foreach ($nodesToDelete as $node)
+		{
+			if ($node->count() > 0)
+			{
+				$node->delete();
+			}
+		}
 
 		// build the feed array and extract all relevant data 
 		$feed[$newsIndex]['id'] = $newsUrlParts[5];
