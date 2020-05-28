@@ -80,7 +80,7 @@
 				$xml->writeElement('link', "https://www.falkensee.de");
 				$xml->writeElement('atom:link', "https://falkensee.graviox.de");
 				$xml->writeElement('lastBuildDate', date("D, d M Y H:i:s e", time()));
-l				$xml->writeElement('language', "de");
+				$xml->writeElement('language', "de");
 
 				foreach ($feed as $feedItem)
 				{
