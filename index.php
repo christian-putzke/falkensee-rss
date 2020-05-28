@@ -1,64 +1,65 @@
 <?php
 
 	date_default_timezone_set('UTC');
-
-	require "vendor/autoload.php";
-
-	use PHPHtmlParser\Dom;
+	libxml_use_internal_errors(true);
 	 
-	$url = 'https://www.falkensee.de';
+	$baseUrl = 'https://www.falkensee.de';
+	$url = $baseUrl . '/news/index.php?rubrik=1';
 
-	// fetch the falkensee start page
-	$dom = new Dom;
-	$dom->loadFromUrl($url);
+	$doc = new DOMDocument();
+	$doc->loadHTMLFile($url);
 
-	$content = $dom->find('#content')[0];
-
+	$links = $doc->getElementsByTagName('a');
 	$newsIndex = 0;
 	$feed;
 
-	// extract the preview snippets for the most recent news items
-	foreach($content->find('p.vorschau') as $news)
-	{
-		// extract the URL to the news item
-		$newsUrl = $url . $news->find('a')->href;
+	foreach ($links as $link) {
+		
+		if ($link->nodeValue != "mehr") {
+			continue;
+		}
+
+		$newsUrl = $baseUrl . $link->getAttribute('href');
 		$newsUrlParts = explode('/', $newsUrl);
 
-		// fetch the whole content of the news item
-		$newsDom = new Dom;
-		$newsDom->loadFromUrl($newsUrl);
+		$newsDoc = new DOMDocument();
+		$newsDoc->loadHTMLFile($newsUrl);
 
-		// filter for the actual interesting contents
-		$newsContentContainer = $newsDom->find('#content');
-		$newsContent = $newsContentContainer->find('.newscontent');
-		
-		// clean up hardcoded date / location string and extract the actual publish date
-		$newsDate = strtotime(str_replace('Falkensee, den ', null, $newsContentContainer->find('.news-date-publicized')->innerHtml));
+		$newsContent = "";
+		$newsDescription = "";
+		$newsImage = "";
+		$newsDate = 0;
 
-		// remove annoying elements  
-		$nodesToDelete = array(
-			$newsContent->find('#magifier_overlay'),
-			$newsContent->find('#magnifier')
-		);
-
-		foreach ($nodesToDelete as $node)
-		{
-			if ($node->count() > 0)
-			{
-				$node->delete();
+		$images = $newsDoc->getElementsByTagName('img');
+		foreach ($images as $image) {
+			$imageClass = $image->getAttribute('class');
+			if ($imageClass == 'previewImage') {
+				$newsImage = $image->getAttribute('src');
 			}
 		}
 
-		// build the feed array and extract all relevant data 
+		$containers = $newsDoc->getElementsByTagName('div');
+		foreach ($containers as $container) {
+			$containerClass = $container->getAttribute('class');
+
+			if ($containerClass == "news-date-publicized") {
+				$newsDate = strtotime(str_replace('Falkensee, den ', null, $container->nodeValue));
+			}
+
+			if ($containerClass == "newscontent") {		
+				$newsContent = $newsDoc->saveXML($container);
+			}
+		}
+
 		$feed[$newsIndex]['id'] = $newsUrlParts[5];
 		$feed[$newsIndex]['link'] = $newsUrl;
-		$feed[$newsIndex]['title'] = $newsContentContainer->find('h1')->innerHtml;
-		$feed[$newsIndex]['description'] = $newsContent->find('p.tiny_p')[0]->innerHtml;
-		$feed[$newsIndex]['content'] = $newsContent->innerHtml;
+		$feed[$newsIndex]['title'] = $newsDoc->getElementsByTagName('h1')[0]->nodeValue;
+		$feed[$newsIndex]['content'] = $newsContent;
 		$feed[$newsIndex]['date'] = $newsDate;
 
 		$newsIndex ++;
 	}
+
 
 	// build the XML RSS2.0 document which will be rendered in the end
 	$xml = new XMLWriter();
@@ -74,20 +75,18 @@
 			$xml->writeAttribute('version', '2.0');
 
 			$xml->startElement("channel");
-				$xml->writeElement('title', "Stadt Falkensee News (inoffiziell)");
-				$xml->writeElement('description', "Der inoffizielle Stadt Falkensee RSS News Feed");
+				$xml->writeElement('title', "Stadt Falkensee News");
+				$xml->writeElement('description', "Der Stadt Falkensee RSS News Feed");
 				$xml->writeElement('link', "https://www.falkensee.de");
 				$xml->writeElement('atom:link', "https://falkensee.graviox.de");
 				$xml->writeElement('lastBuildDate', date("D, d M Y H:i:s e", time()));
-				$xml->writeElement('generator', "https://www.christian-putzke.de");
-				$xml->writeElement('language', "de");
+l				$xml->writeElement('language', "de");
 
 				foreach ($feed as $feedItem)
 				{
 					$xml->startElement("item");
 						$xml->writeElement('title', $feedItem["title"]);
 						$xml->writeElement('link', $feedItem["link"]);
-						$xml->writeElement('description', $feedItem["description"]);
 						$xml->writeElement('pubDate', date("D, d M Y H:i:s e", $feedItem["date"]));
 						$xml->writeElement('guid', $feedItem["id"]);
 						$xml->startElement("content:encoded");
