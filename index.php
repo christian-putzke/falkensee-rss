@@ -27,16 +27,7 @@
 
 		$newsContent = "";
 		$newsDescription = "";
-		$newsImage = "";
 		$newsDate = 0;
-
-		$images = $newsDoc->getElementsByTagName('img');
-		foreach ($images as $image) {
-			$imageClass = $image->getAttribute('class');
-			if ($imageClass == 'previewImage') {
-				$newsImage = $image->getAttribute('src');
-			}
-		}
 
 		$containers = $newsDoc->getElementsByTagName('div');
 		foreach ($containers as $container) {
