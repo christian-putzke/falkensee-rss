@@ -34,11 +34,12 @@
 			$containerClass = $container->getAttribute('class');
 
 			if ($containerClass == "news-date-publicized") {
-				$newsDate = strtotime(str_replace('Falkensee, den ', null, $container->nodeValue));
+				$newsDate = strtotime(str_replace(['Falkensee, den ', " "], null, $container->nodeValue));
 			}
 
-			if ($containerClass == "newscontent") {		
-				$newsContent = $newsDoc->saveXML($container);
+			if ($containerClass == "newscontent") {
+				$newsContentReplace = ["\n","\t","<![CDATA[","]]","https://layout.verwaltungsportal.de/global/interaktiv/buttons/overlay_search_white_v2.png"];
+				$newsContent = str_replace($newsContentReplace, "", $newsDoc->saveXML($container));
 			}
 		}
 
